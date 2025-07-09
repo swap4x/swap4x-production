@@ -1,5 +1,4 @@
 // API Configuration for Swap4x Bridge Aggregator
-require('dotenv').config();
 
 module.exports = {
   // Server Configuration
