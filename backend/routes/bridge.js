@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { ethers } = require('ethers');
-const config = require('../../config/api-config');
+const config = require('../config');
 const BridgeService = require('../services/bridgeService');
 const PriceService = require('../services/priceService');
 const logger = require('../utils/logger');

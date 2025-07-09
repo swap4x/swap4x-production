@@ -1,6 +1,6 @@
 const { ethers } = require('ethers');
 const axios = require('axios');
-const config = require('../../config/api-config');
+const config = require('../config');
 const logger = require('../utils/logger');
 
 class BridgeService {
