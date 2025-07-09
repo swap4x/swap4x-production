@@ -45,45 +45,111 @@ function App() {
 
     checkWalletConnection()
 
-    // Listen for account changes with improved handling
+    // Set up MetaMask event listeners with more robust handling
+    let accountsChangedHandler
+    let chainChangedHandler
+
     if (typeof window.ethereum !== 'undefined') {
-      const handleAccountsChanged = (accounts) => {
-        console.log('Account change detected:', accounts)
+      accountsChangedHandler = (accounts) => {
+        console.log('🔄 MetaMask account change event fired:', accounts)
         
         if (accounts.length === 0) {
-          // User disconnected wallet
-          console.log('Wallet disconnected')
+          console.log('❌ No accounts - wallet disconnected')
           setConnectedWallet(null)
           window.connectedAccount = null
         } else {
-          // User switched accounts
           const account = accounts[0]
-          console.log('Switched to account:', account)
+          console.log('✅ New account detected:', account)
           const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
           setConnectedWallet(formattedAddress)
           window.connectedAccount = account
+          console.log('✅ UI updated with new account:', formattedAddress)
         }
       }
 
-      const handleChainChanged = (chainId) => {
-        console.log('Chain changed:', chainId)
-        // Optionally refresh the page or update UI for chain changes
-        window.location.reload()
+      chainChangedHandler = (chainId) => {
+        console.log('🔗 Chain changed to:', chainId)
+        // Force page reload on chain change to ensure clean state
+        setTimeout(() => window.location.reload(), 100)
       }
 
       // Add event listeners
-      window.ethereum.on('accountsChanged', handleAccountsChanged)
-      window.ethereum.on('chainChanged', handleChainChanged)
+      console.log('🎧 Setting up MetaMask event listeners...')
+      window.ethereum.on('accountsChanged', accountsChangedHandler)
+      window.ethereum.on('chainChanged', chainChangedHandler)
 
-      // Cleanup listeners on component unmount
-      return () => {
-        if (window.ethereum && window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
-          window.ethereum.removeListener('chainChanged', handleChainChanged)
+      // Test if events are working
+      console.log('🧪 Testing MetaMask event setup...')
+      console.log('MetaMask provider:', window.ethereum)
+      console.log('Event listeners added successfully')
+    } else {
+      console.log('❌ MetaMask not detected')
+    }
+
+    // Cleanup function
+    return () => {
+      if (window.ethereum && accountsChangedHandler && chainChangedHandler) {
+        console.log('🧹 Cleaning up MetaMask event listeners...')
+        try {
+          window.ethereum.removeListener('accountsChanged', accountsChangedHandler)
+          window.ethereum.removeListener('chainChanged', chainChangedHandler)
+          console.log('✅ Event listeners cleaned up')
+        } catch (error) {
+          console.error('❌ Error cleaning up listeners:', error)
         }
       }
     }
   }, [])
+
+  // Backup polling mechanism for account changes (in case events don't work)
+  useEffect(() => {
+    let pollInterval
+
+    const pollForAccountChanges = async () => {
+      if (typeof window.ethereum !== 'undefined' && connectedWallet) {
+        try {
+          const accounts = await window.ethereum.request({
+            method: 'eth_accounts'
+          })
+          
+          if (accounts.length > 0) {
+            const currentAccount = accounts[0]
+            const storedAccount = window.connectedAccount
+            
+            if (currentAccount !== storedAccount) {
+              console.log('🔄 Polling detected account change!')
+              console.log('Previous:', storedAccount)
+              console.log('Current:', currentAccount)
+              
+              const formattedAddress = `${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}`
+              setConnectedWallet(formattedAddress)
+              window.connectedAccount = currentAccount
+            }
+          } else if (connectedWallet) {
+            console.log('🔄 Polling detected wallet disconnection')
+            setConnectedWallet(null)
+            window.connectedAccount = null
+          }
+        } catch (error) {
+          console.error('Polling error:', error)
+        }
+      }
+    }
+
+    // Start polling every 2 seconds when wallet is connected
+    if (connectedWallet) {
+      console.log('🔄 Starting account polling backup...')
+      pollInterval = setInterval(pollForAccountChanges, 2000)
+    }
+
+    // Cleanup polling
+    return () => {
+      if (pollInterval) {
+        console.log('🛑 Stopping account polling')
+        clearInterval(pollInterval)
+      }
+    }
+  }, [connectedWallet])
 
   // Hide Manus branding/popup
   useEffect(() => {
@@ -220,26 +286,44 @@ function App() {
   }
 
   const refreshAccount = async () => {
+    console.log('🔄 Manual account refresh triggered...')
+    
     try {
       if (typeof window.ethereum !== 'undefined') {
+        console.log('🔍 Checking current MetaMask accounts...')
+        
         const accounts = await window.ethereum.request({
           method: 'eth_accounts'
         })
         
+        console.log('📋 Current accounts from MetaMask:', accounts)
+        
         if (accounts.length > 0) {
           const account = accounts[0]
-          console.log('Account refreshed:', account)
+          console.log('✅ Active account found:', account)
+          
           const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
+          console.log('🎨 Formatted address:', formattedAddress)
+          
+          // Update state
           setConnectedWallet(formattedAddress)
           window.connectedAccount = account
+          
+          console.log('✅ Account refreshed successfully!')
+          console.log('Current state - connectedWallet:', formattedAddress)
+          console.log('Current state - window.connectedAccount:', account)
         } else {
-          // No accounts found, disconnect
+          console.log('❌ No accounts found - disconnecting')
           setConnectedWallet(null)
           window.connectedAccount = null
         }
+      } else {
+        console.log('❌ MetaMask not available')
+        alert('MetaMask not detected. Please make sure it is installed and enabled.')
       }
     } catch (error) {
-      console.error('Error refreshing account:', error)
+      console.error('❌ Error refreshing account:', error)
+      alert('Failed to refresh account. Please try again or reconnect your wallet.')
     }
   }
 
