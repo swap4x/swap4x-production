@@ -5,7 +5,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const config = require('../config/api-config');
+const config = require('./config');
 const bridgeRoutes = require('./routes/bridge');
 const priceRoutes = require('./routes/prices');
 const analyticsRoutes = require('./routes/analytics');
