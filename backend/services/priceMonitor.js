@@ -1,5 +1,8 @@
-const { getPrices } = require('./priceService');
+const PriceService = require('./priceService');
 const logger = require('../utils/logger');
+
+// Initialize price service
+const priceService = new PriceService();
 
 // Price monitoring configuration
 const PRICE_UPDATE_INTERVAL = 60000; // 1 minute
@@ -50,7 +53,7 @@ async function updatePrices() {
   try {
     logger.debug('Updating token prices...');
     
-    const prices = await getPrices(MONITORED_TOKENS, 'usd');
+    const prices = await priceService.getMultiplePrices(MONITORED_TOKENS);
     
     // Update cache
     for (const [tokenId, priceData] of Object.entries(prices)) {

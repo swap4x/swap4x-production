@@ -62,6 +62,15 @@ module.exports = {
     solana: { chainId: 101, name: 'Solana', symbol: 'SOL' }
   },
 
+  // Platform Configuration
+  platform: {
+    supportedTokens: [
+      'ethereum', 'bitcoin', 'binancecoin', 'cardano', 'solana',
+      'polkadot', 'dogecoin', 'avalanche-2', 'polygon', 'chainlink',
+      'uniswap', 'litecoin', 'bitcoin-cash', 'algorand', 'cosmos'
+    ]
+  },
+
   // CORS Configuration
   cors: {
     origin: process.env.NODE_ENV === 'production' 
