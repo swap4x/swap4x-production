@@ -22,6 +22,56 @@ function App() {
   const [bridgeRoutes, setBridgeRoutes] = useState([])
   const [loading, setLoading] = useState(false)
 
+  // Check for existing wallet connection on app load
+  useEffect(() => {
+    const checkWalletConnection = async () => {
+      try {
+        if (typeof window.ethereum !== 'undefined') {
+          const accounts = await window.ethereum.request({
+            method: 'eth_accounts'
+          })
+          
+          if (accounts.length > 0) {
+            const account = accounts[0]
+            const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
+            setConnectedWallet(formattedAddress)
+            window.connectedAccount = account
+          }
+        }
+      } catch (error) {
+        console.error('Error checking wallet connection:', error)
+      }
+    }
+
+    checkWalletConnection()
+
+    // Listen for account changes
+    if (typeof window.ethereum !== 'undefined') {
+      const handleAccountsChanged = (accounts) => {
+        if (accounts.length === 0) {
+          // User disconnected wallet
+          setConnectedWallet(null)
+          window.connectedAccount = null
+        } else {
+          // User switched accounts
+          const account = accounts[0]
+          const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
+          setConnectedWallet(formattedAddress)
+          window.connectedAccount = account
+        }
+      }
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+
+      // Cleanup listener on component unmount
+      return () => {
+        if (window.ethereum.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+        }
+      }
+    }
+  }, [])
+
   // Hide Manus branding/popup
   useEffect(() => {
     const hideManusElements = () => {
@@ -97,12 +147,46 @@ function App() {
   ]
 
   const connectWallet = async () => {
-    // Mock wallet connection
-    setConnectedWallet('0x1234...5678')
+    try {
+      // Check if MetaMask is installed
+      if (typeof window.ethereum !== 'undefined') {
+        // Request account access
+        const accounts = await window.ethereum.request({
+          method: 'eth_requestAccounts'
+        })
+        
+        if (accounts.length > 0) {
+          const account = accounts[0]
+          // Format address for display (show first 6 and last 4 characters)
+          const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
+          setConnectedWallet(formattedAddress)
+          
+          // Store full address for transactions
+          window.connectedAccount = account
+          
+          console.log('Wallet connected:', account)
+        }
+      } else {
+        // MetaMask not installed
+        alert('Please install MetaMask or another Web3 wallet to connect')
+        // Optionally redirect to MetaMask installation
+        window.open('https://metamask.io/download/', '_blank')
+      }
+    } catch (error) {
+      console.error('Error connecting wallet:', error)
+      if (error.code === 4001) {
+        // User rejected the request
+        alert('Wallet connection was rejected. Please try again.')
+      } else {
+        alert('Failed to connect wallet. Please try again.')
+      }
+    }
   }
 
   const disconnectWallet = () => {
     setConnectedWallet(null)
+    window.connectedAccount = null
+    console.log('Wallet disconnected')
   }
 
   return (
