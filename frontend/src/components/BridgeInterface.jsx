@@ -6,8 +6,19 @@ import { Label } from '@/components/ui/label.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
-import { ArrowRight, ArrowUpDown, Clock, DollarSign, Shield, Zap, RefreshCw, AlertTriangle } from 'lucide-react'
+import { ArrowRight, ArrowUpDown, Clock, DollarSign, Shield, Zap, RefreshCw, AlertTriangle, Wallet, Network } from 'lucide-react'
 import RouteComparison from './RouteComparison'
+import { 
+  getAllTokenBalances, 
+  formatBalance, 
+  getCurrentChainId, 
+  getNetworkName,
+  getTokensForNetwork,
+  isOnCorrectNetwork,
+  switchToNetwork,
+  CHAIN_ID_MAP,
+  getNetworkConfig
+} from '../utils/walletUtils.js'
 
 const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
   const [fromChain, setFromChain] = useState('ethereum')
@@ -17,25 +28,112 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
   const [preference, setPreference] = useState('balanced')
   const [loading, setLoading] = useState(false)
   const [showRoutes, setShowRoutes] = useState(false)
+  const [walletBalances, setWalletBalances] = useState({})
+  const [loadingBalances, setLoadingBalances] = useState(false)
+  const [currentChainId, setCurrentChainId] = useState(null)
+  const [availableTokens, setAvailableTokens] = useState({})
+  const [networkMismatch, setNetworkMismatch] = useState(false)
 
   const chains = [
-    { id: 'ethereum', name: 'Ethereum', symbol: 'ETH' },
-    { id: 'polygon', name: 'Polygon', symbol: 'MATIC' },
-    { id: 'arbitrum', name: 'Arbitrum', symbol: 'ETH' },
-    { id: 'optimism', name: 'Optimism', symbol: 'ETH' },
-    { id: 'base', name: 'Base', symbol: 'ETH' },
-    { id: 'avalanche', name: 'Avalanche', symbol: 'AVAX' },
-    { id: 'bnb', name: 'BNB Chain', symbol: 'BNB' },
-    { id: 'fantom', name: 'Fantom', symbol: 'FTM' },
-    { id: 'solana', name: 'Solana', symbol: 'SOL' }
+    { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', chainId: 1 },
+    { id: 'polygon', name: 'Polygon', symbol: 'MATIC', chainId: 137 },
+    { id: 'arbitrum', name: 'Arbitrum', symbol: 'ETH', chainId: 42161 },
+    { id: 'optimism', name: 'Optimism', symbol: 'ETH', chainId: 10 },
+    { id: 'base', name: 'Base', symbol: 'ETH', chainId: 8453 },
+    { id: 'avalanche', name: 'Avalanche', symbol: 'AVAX', chainId: 43114 },
+    { id: 'bnb', name: 'BNB Chain', symbol: 'BNB', chainId: 56 },
+    { id: 'fantom', name: 'Fantom', symbol: 'FTM', chainId: 250 }
   ]
 
-  const tokens = [
-    { id: 'USDC', name: 'USD Coin', symbol: 'USDC' },
-    { id: 'USDT', name: 'Tether', symbol: 'USDT' },
-    { id: 'ETH', name: 'Ethereum', symbol: 'ETH' },
-    { id: 'WETH', name: 'Wrapped Ethereum', symbol: 'WETH' }
-  ]
+  // Load current network and balances when wallet connects
+  useEffect(() => {
+    if (connectedWallet && window.connectedAccount) {
+      loadCurrentNetwork()
+      loadWalletBalances()
+    }
+  }, [connectedWallet])
+
+  // Update available tokens when fromChain changes
+  useEffect(() => {
+    updateAvailableTokens()
+  }, [fromChain, currentChainId])
+
+  // Check for network mismatch
+  useEffect(() => {
+    checkNetworkMismatch()
+  }, [fromChain, currentChainId])
+
+  const loadCurrentNetwork = async () => {
+    try {
+      const chainId = await getCurrentChainId()
+      setCurrentChainId(chainId)
+      console.log(`🌐 Current network: ${getNetworkName(chainId)} (${chainId})`)
+    } catch (error) {
+      console.error('❌ Error loading current network:', error)
+    }
+  }
+
+  const updateAvailableTokens = () => {
+    const expectedChainId = CHAIN_ID_MAP[fromChain]
+    if (expectedChainId) {
+      const tokens = getTokensForNetwork(expectedChainId)
+      setAvailableTokens(tokens)
+      
+      // Reset token selection if current token not available on new network
+      if (!tokens[token]) {
+        const firstToken = Object.keys(tokens)[0]
+        if (firstToken) {
+          setToken(firstToken)
+        }
+      }
+    }
+  }
+
+  const checkNetworkMismatch = () => {
+    const expectedChainId = CHAIN_ID_MAP[fromChain]
+    const mismatch = currentChainId && expectedChainId && currentChainId !== expectedChainId
+    setNetworkMismatch(mismatch)
+  }
+
+  const loadWalletBalances = async () => {
+    if (!window.ethereum || !window.connectedAccount) return
+    
+    console.log('🔍 Loading wallet balances...')
+    setLoadingBalances(true)
+    
+    try {
+      const balances = await getAllTokenBalances(window.connectedAccount)
+      setWalletBalances(balances)
+      console.log('✅ Wallet balances loaded:', balances)
+      
+    } catch (error) {
+      console.error('❌ Error loading wallet balances:', error)
+    } finally {
+      setLoadingBalances(false)
+    }
+  }
+
+  const handleSwitchNetwork = async () => {
+    const expectedChainId = CHAIN_ID_MAP[fromChain]
+    if (expectedChainId) {
+      console.log(`🔄 Switching to ${fromChain} (${expectedChainId})`)
+      const success = await switchToNetwork(expectedChainId)
+      if (success) {
+        // Reload network and balances after switch
+        setTimeout(() => {
+          loadCurrentNetwork()
+          loadWalletBalances()
+        }, 1000)
+      }
+    }
+  }
+
+  const setMaxAmount = () => {
+    const balance = walletBalances[token] || '0'
+    if (parseFloat(balance) > 0) {
+      setAmount(balance)
+    }
+  }
 
   const preferences = [
     { id: 'cheapest', name: 'Cheapest', icon: DollarSign, description: 'Minimize fees' },
@@ -110,21 +208,40 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
                   <SelectValue placeholder="Select token" />
                 </SelectTrigger>
                 <SelectContent>
-                  {tokens.map((token) => (
-                    <SelectItem key={token.id} value={token.id}>
-                      {token.symbol} - {token.name}
+                  {Object.values(availableTokens).map((tokenItem) => (
+                    <SelectItem key={tokenItem.id} value={tokenItem.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <span>{tokenItem.symbol} - {tokenItem.name}</span>
+                        {connectedWallet && (
+                          <span className="text-sm text-gray-500 ml-2">
+                            {loadingBalances ? '...' : formatBalance(walletBalances[tokenItem.id])}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               
-              <Input
-                type="number"
-                placeholder="Amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="text-right"
-              />
+              <div className="relative">
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="text-right pr-16"
+                />
+                {connectedWallet && walletBalances[token] && parseFloat(walletBalances[token]) > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={setMaxAmount}
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 px-2 text-xs"
+                  >
+                    MAX
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -198,6 +315,68 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
               </>
             )}
           </Button>
+
+          {/* Network Mismatch Warning */}
+          {networkMismatch && connectedWallet && (
+            <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md">
+              <div className="flex items-center gap-2">
+                <Network className="h-4 w-4 text-orange-600" />
+                <span className="text-sm text-orange-700 dark:text-orange-300">
+                  Wrong network! Switch to {chains.find(c => c.id === fromChain)?.name} to see balances
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSwitchNetwork}
+                className="text-orange-700 border-orange-300 hover:bg-orange-100"
+              >
+                Switch Network
+              </Button>
+            </div>
+          )}
+
+          {/* Wallet Balance Display */}
+          {connectedWallet && (
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4" />
+                  <span className="font-medium">
+                    Wallet Balances {currentChainId && `(${getNetworkName(currentChainId)})`}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadWalletBalances}
+                  disabled={loadingBalances}
+                  className="h-8"
+                >
+                  {loadingBalances ? (
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3" />
+                  )}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Object.values(availableTokens).map((tokenItem) => (
+                  <div key={tokenItem.id} className="text-center">
+                    <div className="text-sm font-medium">{tokenItem.symbol}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      {loadingBalances ? '...' : formatBalance(walletBalances[tokenItem.id])}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {Object.keys(availableTokens).length === 0 && (
+                <div className="text-center text-sm text-gray-500">
+                  No tokens available for this network
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Warning for disconnected wallet */}
           {!connectedWallet && (
