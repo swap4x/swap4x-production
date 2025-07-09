@@ -17,53 +17,9 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware with Web3-compatible CSP
+// Security middleware - CSP temporarily disabled for Web3 testing
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'", 
-        "'unsafe-inline'", 
-        "'unsafe-eval'", // Required for Web3 and MetaMask
-        "https://cdn.jsdelivr.net",
-        "https://unpkg.com",
-        "https:",
-        "data:",
-        "blob:"
-      ],
-      styleSrc: [
-        "'self'", 
-        "'unsafe-inline'",
-        "https://fonts.googleapis.com",
-        "https:"
-      ],
-      fontSrc: [
-        "'self'",
-        "https://fonts.gstatic.com",
-        "https:",
-        "data:"
-      ],
-      connectSrc: [
-        "'self'",
-        "https:",
-        "wss:",
-        "ws:",
-        "https://*.infura.io",
-        "https://*.alchemy.com", 
-        "https://*.ethereum.org",
-        "https://*.metamask.io",
-        "wss://*.infura.io",
-        "wss://*.alchemy.com",
-        "*"
-      ],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      objectSrc: ["'none'"],
-      frameSrc: ["'self'", "https:"],
-      workerSrc: ["'self'", "blob:", "https:"],
-      upgradeInsecureRequests: []
-    }
-  }
+  contentSecurityPolicy: false // Temporarily disabled to test Web3 functionality
 }));
 app.use(compression());
 
