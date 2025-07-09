@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/navigation-menu.jsx'
 import { Wallet, Menu, X, ArrowUpDown, History, BarChart3, Settings } from 'lucide-react'
 
-const Header = ({ connectedWallet, onConnect, onDisconnect }) => {
+const Header = ({ connectedWallet, onConnect, onDisconnect, onRefreshAccount }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
 
@@ -80,8 +80,11 @@ const Header = ({ connectedWallet, onConnect, onDisconnect }) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(connectedWallet)}>
+                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(window.connectedAccount || connectedWallet)}>
                     Copy Address
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onRefreshAccount}>
+                    Refresh Account
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Link to="/history" className="w-full">View History</Link>

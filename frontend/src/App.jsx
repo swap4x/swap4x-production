@@ -45,28 +45,41 @@ function App() {
 
     checkWalletConnection()
 
-    // Listen for account changes
+    // Listen for account changes with improved handling
     if (typeof window.ethereum !== 'undefined') {
       const handleAccountsChanged = (accounts) => {
+        console.log('Account change detected:', accounts)
+        
         if (accounts.length === 0) {
           // User disconnected wallet
+          console.log('Wallet disconnected')
           setConnectedWallet(null)
           window.connectedAccount = null
         } else {
           // User switched accounts
           const account = accounts[0]
+          console.log('Switched to account:', account)
           const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
           setConnectedWallet(formattedAddress)
           window.connectedAccount = account
         }
       }
 
-      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      const handleChainChanged = (chainId) => {
+        console.log('Chain changed:', chainId)
+        // Optionally refresh the page or update UI for chain changes
+        window.location.reload()
+      }
 
-      // Cleanup listener on component unmount
+      // Add event listeners
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+      window.ethereum.on('chainChanged', handleChainChanged)
+
+      // Cleanup listeners on component unmount
       return () => {
-        if (window.ethereum.removeListener) {
+        if (window.ethereum && window.ethereum.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+          window.ethereum.removeListener('chainChanged', handleChainChanged)
         }
       }
     }
@@ -157,6 +170,7 @@ function App() {
         
         if (accounts.length > 0) {
           const account = accounts[0]
+          console.log('Wallet connected:', account)
           // Format address for display (show first 6 and last 4 characters)
           const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
           setConnectedWallet(formattedAddress)
@@ -164,7 +178,23 @@ function App() {
           // Store full address for transactions
           window.connectedAccount = account
           
-          console.log('Wallet connected:', account)
+          // Force a check for the current account to ensure sync
+          setTimeout(async () => {
+            try {
+              const currentAccounts = await window.ethereum.request({
+                method: 'eth_accounts'
+              })
+              if (currentAccounts.length > 0 && currentAccounts[0] !== account) {
+                const newAccount = currentAccounts[0]
+                const newFormattedAddress = `${newAccount.slice(0, 6)}...${newAccount.slice(-4)}`
+                setConnectedWallet(newFormattedAddress)
+                window.connectedAccount = newAccount
+                console.log('Account updated after connection:', newAccount)
+              }
+            } catch (error) {
+              console.error('Error checking account after connection:', error)
+            }
+          }, 1000)
         }
       } else {
         // MetaMask not installed
@@ -189,6 +219,30 @@ function App() {
     console.log('Wallet disconnected')
   }
 
+  const refreshAccount = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        const accounts = await window.ethereum.request({
+          method: 'eth_accounts'
+        })
+        
+        if (accounts.length > 0) {
+          const account = accounts[0]
+          console.log('Account refreshed:', account)
+          const formattedAddress = `${account.slice(0, 6)}...${account.slice(-4)}`
+          setConnectedWallet(formattedAddress)
+          window.connectedAccount = account
+        } else {
+          // No accounts found, disconnect
+          setConnectedWallet(null)
+          window.connectedAccount = null
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing account:', error)
+    }
+  }
+
   return (
     <Router>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -196,6 +250,7 @@ function App() {
           connectedWallet={connectedWallet}
           onConnect={connectWallet}
           onDisconnect={disconnectWallet}
+          onRefreshAccount={refreshAccount}
         />
         
         <main className="container mx-auto px-4 py-8">
