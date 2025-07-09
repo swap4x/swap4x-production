@@ -4,10 +4,10 @@
   "description": "Professional crypto bridge aggregator with multi-network support",
   "main": "backend/server.js",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install --legacy-peer-deps && npm run build",
     "start": "cd backend && npm install && npm start",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "install-all": "cd backend && npm install && cd ../frontend && npm install"
+    "install-all": "cd backend && npm install && cd ../frontend && npm install --legacy-peer-deps"
   },
   "keywords": [
     "crypto",
