@@ -139,9 +139,66 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
   const handleGetRoutes = async () => {
     setLoading(true)
     
+    // Calculate realistic values based on actual amount
+    const amountNum = parseFloat(amount) || 1000
+    const ethPrice = 3000 // Approximate ETH price
+    const usdValue = token === 'ETH' ? amountNum * ethPrice : amountNum
+    
+    // Create realistic routes based on actual amount
+    const calculatedRoutes = [
+      {
+        id: 'stargate',
+        name: 'Stargate Finance',
+        icon: 'S',
+        iconBg: 'bg-green-500',
+        fee: '0.06%',
+        feeUsd: `$${(usdValue * 0.0006).toFixed(2)}`,
+        time: '5 min',
+        gas: '$12.50',
+        youGet: (amountNum * 0.9935).toFixed(4),
+        confidence: 'High Confidence',
+        confidencePercent: '95%',
+        score: 92.5,
+        recommended: true,
+        features: ['Instant Settlement', 'Low Slippage', 'High Liquidity']
+      },
+      {
+        id: 'hop',
+        name: 'Hop Protocol',
+        icon: 'H',
+        iconBg: 'bg-purple-500',
+        fee: '0.04%',
+        feeUsd: `$${(usdValue * 0.0004).toFixed(2)}`,
+        time: '4 min',
+        gas: '$8.20',
+        youGet: (amountNum * 0.9952).toFixed(4),
+        confidence: 'High Confidence',
+        confidencePercent: '92%',
+        score: 94.2,
+        recommended: false,
+        features: ['Fast Transfer', 'Optimized Gas', 'Multi-hop']
+      },
+      {
+        id: 'across',
+        name: 'Across Protocol',
+        icon: 'A',
+        iconBg: 'bg-blue-500',
+        fee: '0.03%',
+        feeUsd: `$${(usdValue * 0.0003).toFixed(2)}`,
+        time: '3 min',
+        gas: '$6.80',
+        youGet: (amountNum * 0.9962).toFixed(4),
+        confidence: 'Medium Confidence',
+        confidencePercent: '88%',
+        score: 96.1,
+        recommended: false,
+        features: ['Ultra Fast', 'Low Fees', 'Optimistic']
+      }
+    ]
+    
     // Simulate API call with realistic delay
     setTimeout(() => {
-      const sortedRoutes = [...premiumRoutes].sort((a, b) => {
+      const sortedRoutes = [...calculatedRoutes].sort((a, b) => {
         if (sortBy === 'score') return b.score - a.score
         if (sortBy === 'time') return parseInt(a.time) - parseInt(b.time)
         if (sortBy === 'fee') return parseFloat(a.fee) - parseFloat(b.fee)

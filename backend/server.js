@@ -17,9 +17,10 @@ const logger = require('./utils/logger');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware - CSP disabled for Web3 compatibility
+// Security middleware - CSP completely removed for Web3 compatibility
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
 }));
 app.use(compression());
 
