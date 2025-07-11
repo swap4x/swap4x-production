@@ -139,12 +139,10 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
   const handleGetRoutes = async () => {
     setLoading(true)
     
-    // Calculate realistic values based on actual amount
-    const amountNum = parseFloat(amount) || 1000
-    const ethPrice = 3000 // Approximate ETH price
-    const usdValue = token === 'ETH' ? amountNum * ethPrice : amountNum
+    // Calculate realistic values based on actual amount and token
+    const amountNum = parseFloat(amount) || 0.01
     
-    // Create realistic routes based on actual amount
+    // Create realistic routes based on actual amount and token
     const calculatedRoutes = [
       {
         id: 'stargate',
@@ -152,10 +150,10 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
         icon: 'S',
         iconBg: 'bg-green-500',
         fee: '0.06%',
-        feeUsd: `$${(usdValue * 0.0006).toFixed(2)}`,
+        feeUsd: `$${(amountNum * 0.0006 * (token === 'ETH' ? 3000 : 1)).toFixed(2)}`,
         time: '5 min',
         gas: '$12.50',
-        youGet: (amountNum * 0.9935).toFixed(4),
+        youGet: (amountNum * 0.9935).toFixed(6),
         confidence: 'High Confidence',
         confidencePercent: '95%',
         score: 92.5,
@@ -168,10 +166,10 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
         icon: 'H',
         iconBg: 'bg-purple-500',
         fee: '0.04%',
-        feeUsd: `$${(usdValue * 0.0004).toFixed(2)}`,
+        feeUsd: `$${(amountNum * 0.0004 * (token === 'ETH' ? 3000 : 1)).toFixed(2)}`,
         time: '4 min',
         gas: '$8.20',
-        youGet: (amountNum * 0.9952).toFixed(4),
+        youGet: (amountNum * 0.9952).toFixed(6),
         confidence: 'High Confidence',
         confidencePercent: '92%',
         score: 94.2,
@@ -184,10 +182,10 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
         icon: 'A',
         iconBg: 'bg-blue-500',
         fee: '0.03%',
-        feeUsd: `$${(usdValue * 0.0003).toFixed(2)}`,
+        feeUsd: `$${(amountNum * 0.0003 * (token === 'ETH' ? 3000 : 1)).toFixed(2)}`,
         time: '3 min',
         gas: '$6.80',
-        youGet: (amountNum * 0.9962).toFixed(4),
+        youGet: (amountNum * 0.9962).toFixed(6),
         confidence: 'Medium Confidence',
         confidencePercent: '88%',
         score: 96.1,
@@ -506,16 +504,14 @@ const BridgeInterface = ({ connectedWallet, onConnect, routes }) => {
                       </div>
                       <div className="font-semibold">{route.gas}</div>
                     </div>
-                    
-                    <div className="text-center">
-                      <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
-                        <CheckCircle className="h-3 w-3" />
-                        You Get
-                      </div>
-                      <div className="font-semibold text-lg text-green-600">{route.youGet}</div>
-                      <div className="text-xs text-muted-foreground">USDC</div>
-                    </div>
-                    
+                                   <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3" />
+                          You Get
+                        </div>
+                        <div className="font-semibold text-lg text-green-600">{route.youGet}</div>
+                        <div className="text-xs text-muted-foreground">{token}</div>
+                      </div>             
                     <Button 
                       onClick={() => handleExecuteBridge(route)}
                       className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8"
